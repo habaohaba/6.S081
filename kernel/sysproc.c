@@ -80,8 +80,35 @@ sys_sleep(void)
 int
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
-  return 0;
+    // lab pgtbl: your code here.
+    // pgtbl of process
+    pagetable_t pgtbl = myproc()->pagetable;
+    // starting va of the first user page to check
+    uint64 va;
+    // number of pages to check
+    int n;
+    // ua to store results 
+    uint64 ua;
+    argaddr(0, &va);
+    argint(1, &n);
+    argaddr(2, &ua);
+    // bitmask to store result
+    uint64 bitmask = 0;
+    uint64 cleaner = 0xFFFFFFFFFFFFFFBF;
+    uint64 flag;
+    if (n > 64)
+        panic("more than 64 pages to scanned.");  
+    for (int i = 0; i < n; i++){
+        pte_t *pte = walk(pgtbl, va, 0);
+        if ((*pte & PTE_V) && (*pte & PTE_A)){
+            flag = (1L << i);
+            bitmask = bitmask | flag;
+            *pte = *pte & cleaner;
+        }
+        va += PGSIZE;
+    }
+    copyout(pgtbl, ua, (char *) &bitmask, 8);
+    return 0;
 }
 #endif
 
